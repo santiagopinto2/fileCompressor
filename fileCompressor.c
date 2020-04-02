@@ -15,6 +15,15 @@ struct tokenNode{
 	int count;
 	struct tokenNode* next;
 };
+typedef struct minHeapNode {
+	char* token;
+	int count;
+} heapNode;
+typedef struct binaryTreeNode {
+	char* data;
+	treeNode* left;   
+	treeNode* right;
+} treeNode;
 struct tokenNode* countOccurrences(struct tokenNode* head, char* newToken){
 	if(head->token==NULL){
 		head->token=malloc(strlen(newToken)+1);
@@ -416,6 +425,46 @@ void decompress(char* fileName, char* codebookFile){
 	close(file);
 	close(codebook);
 	close(newFile);
+}
+int isLeaf(treeNode* root) {
+	if (root == NULL) return 0;
+	if (root->left != NULL || root->right != NULL) return 0;
+	return 1;
+}
+int tokenNodeLength(struct tokenNode* front) {
+	struct tokenNode* ptr = front;
+	int length == 0;
+	while (ptr != NULL) {
+		ptr = ptr->next;
+		length++;
+	}
+	return length;
+}
+heapNode* makeMinHeap(struct tokenNode* list, int length) {
+	heapNode* heap = (heapNode* ) malloc(length * sizeof(heapNode));
+	if (length == 0 || heap == NULL || list == NULL) return NULL;
+	heap[0].token = (char* ) malloc( strlen(list[0].token) * sizeof(char) );
+	strcpy(heap[0].token, list[0].token);
+	heap[0].count = list[0].count;
+	if (length == 1) return heap;
+	int place = 1;
+	heapNode* current = heap[1];
+	struct tokenNode* ptr = list[1];
+	while (ptr != NULL) {
+		heap[place].token = (char* ) malloc( strlen(list[place].token) * sizeof(char) );
+		strcpy(heap[place].token, list[place].token);
+		heap[place].count = list[place].count;
+		siftUp(heap, place);
+		siftDown(heap, length);
+		place++;
+	}
+	return heap;
+}
+void siftUp(heapNode* heap, int place) {
+
+}
+void siftDown(heapNode* heap, int length) {
+
 }
 int main(int argc, char **argv){
 	//going through directories recursively
