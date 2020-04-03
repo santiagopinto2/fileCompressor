@@ -55,98 +55,6 @@ struct tokenNode* countOccurrences(struct tokenNode* head, char* newToken){
 	tmp->next=newTokenNode;
 	return head;
 }
-void getTokens(int file){
-	int flag, start=0, count=0;
-	char buffer;
-	struct tokenNode* firstTokenNode=(struct tokenNode*)malloc(sizeof(struct tokenNode));
-	struct readNode* firstReadNode=(struct readNode*)malloc(sizeof(struct readNode));
-	while((flag=read(file, &buffer, sizeof(buffer)))>0){
-		//if the token hasn't started yet
-		if(start==0){
-			//if it is an empty token
-			if(buffer==' ')
-				firstTokenNode=countOccurrences(firstTokenNode, " ");
-			else if(buffer=='\n')
-				firstTokenNode==countOccurrences(firstTokenNode, "\\n");
-			else if(buffer=='\t')
-				firstTokenNode==countOccurrences(firstTokenNode, "\\t");
-			else{
-				start=1;
-				count++;
-				firstReadNode->c=buffer;
-				firstReadNode->next=NULL;
-			}
-		}
-		//if the token has started
-		else{
-			//if the token is ending
-			if(buffer==' '||buffer=='\n'||buffer=='\t'){
-				if(buffer==' ')
-					firstTokenNode=countOccurrences(firstTokenNode, " ");
-				else if(buffer=='\n')
-					firstTokenNode==countOccurrences(firstTokenNode, "\\n");
-				else if(buffer=='\t')
-					firstTokenNode==countOccurrences(firstTokenNode, "\\t");
-				start=0;
-				char* s=malloc(count);
-				count=0;
-				struct readNode* tempReadNode=firstReadNode;
-				while(tempReadNode->next!=NULL){
-					s[count]=tempReadNode->c;
-					count++;
-					tempReadNode=tempReadNode->next;
-				}
-				s[count]=tempReadNode->c;
-				firstTokenNode=countOccurrences(firstTokenNode, s);
-				count=0;
-			}
-			//add to the token
-			else{
-				count++;
-				struct readNode* newReadNode=(struct readNode*)malloc(sizeof(struct readNode));
-				newReadNode->c=buffer;
-				newReadNode->next=NULL;
-				struct readNode* tempReadNode=firstReadNode;
-				while(tempReadNode->next!=NULL)
-					tempReadNode=tempReadNode->next;
-				tempReadNode->next=newReadNode;
-			}
-		}
-	}
-	struct tokenNode* tmp=firstTokenNode;
-	while(tmp!=NULL){
-		printf("%s: %d\n", tmp->token, tmp->count);
-		tmp=tmp->next;
-	}
-}
-void printFiles(char *directory){
-    struct dirent *dp;
-    DIR *dir = opendir(directory);
-    if (!dir)
-        return;
-    while ((dp=readdir(dir))!=NULL){
-		char* dName=dp->d_name;
-        if (strcmp(dName, "..")!=0&&strcmp(dName, ".")!=0){
-			printf("%s\n", dName);
-			char pathName[10000];
-			strcpy(pathName, directory);
-            strcat(pathName, "/");
-            strcat(pathName, dName);
-			char buffer;
-			int flag, dNameLength=strlen(dName);
-			int file=open(pathName, O_RDONLY);
-			if(file!=-1&&dName[dNameLength-3]=='t'&&dName[dNameLength-2]=='x'&&dName[dNameLength-1]=='t'){
-				getTokens(file);
-				/*while((flag=read(file, &buffer, sizeof(buffer)))>0){
-					printf("%c", buffer);
-				}*/
-			}
-			close(file);
-            printFiles(pathName);
-        }
-    }
-    closedir(dir);
-}
 char* getToken(int file){
 	int flag, start=0, count=0;
 	char buffer;
@@ -154,7 +62,6 @@ char* getToken(int file){
 	while((flag=read(file, &buffer, sizeof(buffer)))>0){
 		//if the token hasn't started yet
 		if(start==0){
-			//if it is an empty token
 			if(buffer==' ')
 				return " ";
 			else if(buffer=='\n')
@@ -173,7 +80,8 @@ char* getToken(int file){
 			//if the token is ending
 			if(buffer==' '||buffer=='\n'||buffer=='\t'){
 				start=0;
-				char* s=malloc(count+2);
+				char* s=malloc(count+3);
+				s[count+2]='\0';
 				if(buffer==' '){
 					s[count]=' ';
 					s[count+1]=' ';
@@ -249,7 +157,6 @@ struct tokenNode* parseCodebook(struct tokenNode* firstTokenNode, int codebook){
 						firstTokenNode->count=num;
 					}
 					else{
-						//printf("%s\n", string);
 						struct tokenNode* tmp=firstTokenNode;
 						while(tmp->next!=NULL)
 							tmp=tmp->next;
@@ -272,24 +179,14 @@ struct tokenNode* parseCodebook(struct tokenNode* firstTokenNode, int codebook){
 		}
 		else
 			spaceCheck=0;
-		//printf("%s\n", string);
 	}
 	return firstTokenNode;
 }
-void compress(char *fileName, char* codebookFile){
+void compress(char* fileName, struct tokenNode* firstTokenNode){
 	char* string;
-	int start=0, counter=1, num, spaceCheck=0, i;
+	int i;
 	int file=open(fileName, O_RDONLY);
-	int codebook=open(codebookFile, O_RDONLY);
 	int newFile=creat(strcat(fileName, ".hcz"), S_IRWXG|S_IRWXO|S_IRWXU);
-	struct tokenNode* firstTokenNode=(struct tokenNode*)malloc(sizeof(struct tokenNode));
-	firstTokenNode=parseCodebook(firstTokenNode, codebook);
-	/*
-	struct tokenNode* tmp1=firstTokenNode;
-	while(tmp1!=NULL){
-		//printf("Token %s with code %d\n", tmp1->token, tmp1->count);
-		tmp1=tmp1->next;
-	}*/
 	while((string=getToken(file))!=NULL){
 		int stringLen=strlen(string), writeInt, countLen;
 		struct tokenNode* tmp=firstTokenNode;
@@ -354,38 +251,30 @@ void compress(char *fileName, char* codebookFile){
 				tmp=tmp->next;
 			}
 		}
-		//printf("%s\n", string);
 	}
 	close(file);
-	close(codebook);
 	close(newFile);
 }
-void decompress(char* fileName, char* codebookFile){
-	//char codeStart[0];
+void decompress(char* fileName, struct tokenNode* firstTokenNode){
 	int fileLen=strlen(fileName);
 	char newFileName[fileLen-3];
-	int start=0, count=1, num, spaceCheck=0, i, flag, writeInt;
+	int count=1, i, flag, writeInt;
 	char buffer;
 	newFileName[fileLen-4]='\0';
 	int file=open(fileName, O_RDONLY);
-	int codebook=open(codebookFile, O_RDONLY);
 	for(i=0;i<fileLen-4;i++)
 		newFileName[i]=fileName[i];
 	int newFile=creat(newFileName, S_IRWXG|S_IRWXO|S_IRWXU);
-	struct tokenNode* firstTokenNode=(struct tokenNode*)malloc(sizeof(struct tokenNode));
-	firstTokenNode=parseCodebook(firstTokenNode, codebook);
 	struct readNode* firstReadNode=(struct readNode*)malloc(sizeof(struct readNode));
 	firstReadNode->next=NULL;
+	firstReadNode->c=0;
 	while((flag=read(file, &buffer, sizeof(buffer)))>0){
 		count++;
 		char code[count];
-		//printf("%d\t%d\n", strlen(code), count);
 		code[count-1]='\0';
-		//printf("%d\n", strlen(code));
 		if(firstReadNode->c==0){
 			firstReadNode->c=buffer;
 			code[0]=buffer;
-			//printf("%s\n", code);
 		}
 		else{
 			int count2=0;
@@ -420,11 +309,35 @@ void decompress(char* fileName, char* codebookFile){
 			tmpTokenNode=tmpTokenNode->next;
 		}
 	}
-	
-	
 	close(file);
-	close(codebook);
 	close(newFile);
+}
+void recursiveComDecom(char* command, char* directory, struct tokenNode* firstTokenNode){
+    struct dirent *dp;
+    DIR *dir = opendir(directory);
+    if (!dir)
+        return;
+    while ((dp=readdir(dir))!=NULL){
+		char* dName=dp->d_name;
+        if (strcmp(dName, "..")!=0&&strcmp(dName, ".")!=0){
+			char pathName[10000];
+			strcpy(pathName, directory);
+            strcat(pathName, "/");
+            strcat(pathName, dName);
+			char buffer;
+			int flag, dNameLength=strlen(dName);
+			int file=open(pathName, O_RDONLY);
+			if(file!=-1){
+				if(strcmp(command, "-c")==0&&dName[dNameLength-3]=='t'&&dName[dNameLength-2]=='x'&&dName[dNameLength-1]=='t')
+					compress(pathName, firstTokenNode);
+				else if(strcmp(command, "-d")==0&&dName[dNameLength-3]=='h'&&dName[dNameLength-2]=='c'&&dName[dNameLength-1]=='z')
+					decompress(pathName, firstTokenNode);
+			}
+			close(file);
+            recursiveComDecom(pathName, command, firstTokenNode);
+        }
+    }
+    closedir(dir);
 }
 int isLeaf(treeNode* root) {
 	if (root == NULL) return 0;
@@ -536,14 +449,59 @@ void printHeap(struct Heap* heap, int length) {
 	printf("\n");
 }
 int main(int argc, char **argv){
-	//going through directories recursively
-	//printFiles(argv[1]);
+	if(strcmp(argv[1], "-R")==0){
+		if(strcmp(argv[2], "-c")==0||strcmp(argv[2], "-d")==0){
+			int codebook=open(argv[4], O_RDONLY);
+			struct tokenNode* firstTokenNode=(struct tokenNode*)malloc(sizeof(struct tokenNode));
+			firstTokenNode=parseCodebook(firstTokenNode, codebook);
+			recursiveComDecom(argv[2], argv[3], firstTokenNode);
+			close(codebook);
+		}
+		else if(strcmp(argv[2], "-b")==0){
+			/*
+			 * 
+			 * 
+			 * 
+			 * 
+			 * build codebook
+			 * 
+			 * 
+			 */
+		}
+	}
+	else if(strcmp(argv[1], "-c")==0||strcmp(argv[1], "-d")==0){
+		int codebook=open(argv[3], O_RDONLY);
+		struct tokenNode* firstTokenNode=(struct tokenNode*)malloc(sizeof(struct tokenNode));
+		firstTokenNode=parseCodebook(firstTokenNode, codebook);
+		if(strcmp(argv[1], "-c")==0)
+			compress(argv[2], firstTokenNode);
+		else
+			decompress(argv[2], firstTokenNode);
+		close(codebook);
+	}
+	else if(strcmp(argv[1], "-b")==0){
+		/*
+		 * 
+		 * 
+		 * 
+		 * build codebook
+		 * 
+		 * 
+		 * 
+		 */
+	}
+	else{
+		/*
+		 * 
+		 * input error
+		 * 
+		 * 
+		 */
+	}
+
+	return EXIT_SUCCESS;
 	
-	//compress a file given a codebook
-	//compress(argv[1], argv[2]);
-	
-	//decompress a file given a codebook
-	//decompress(argv[1], argv[2]);
+	/*
 	struct tokenNode five = {.token = "five", .count = 5, .next = NULL};
 	struct tokenNode four = {.token = "four", .count = 2, .next = &five};
 	struct tokenNode three = {.token = "three", .count = 3, .next = &four};
@@ -557,5 +515,6 @@ int main(int argc, char **argv){
 	printf("%s %d\n", popMin(heap, length)->token, popMin(heap, length)->count);
 	printHeap(heap, *length);
 	printf("length is %d\n", *length);
-	return EXIT_SUCCESS;
+	* */
+	
 }
