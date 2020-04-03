@@ -15,14 +15,14 @@ struct tokenNode{
 	int count;
 	struct tokenNode* next;
 };
-typedef struct minHeapNode {
+struct Heap {
 	char* token;
 	int count;
-} heapNode;
+};
 typedef struct binaryTreeNode {
 	char* data;
-	treeNode* left;   
-	treeNode* right;
+	struct binaryTreeNode* left;   
+	struct binaryTreeNode* right;
 } treeNode;
 struct tokenNode* countOccurrences(struct tokenNode* head, char* newToken){
 	if(head->token==NULL){
@@ -433,38 +433,107 @@ int isLeaf(treeNode* root) {
 }
 int tokenNodeLength(struct tokenNode* front) {
 	struct tokenNode* ptr = front;
-	int length == 0;
+	int length = 0;
 	while (ptr != NULL) {
 		ptr = ptr->next;
 		length++;
 	}
 	return length;
 }
-heapNode* makeMinHeap(struct tokenNode* list, int length) {
-	heapNode* heap = (heapNode* ) malloc(length * sizeof(heapNode));
+void siftUp(struct Heap* heap, int place) { //parent formula is (i-1)/2
+	int i = place;
+	struct Heap temp;
+	while ((i-1)/2 >= 0) {
+		if (heap[i].count < heap[(i-1)/2].count) {
+			temp.token = (char* ) malloc(strlen(heap[i].token) * sizeof(char));
+			temp.count = heap[i].count;
+			strcpy(temp.token, heap[i].token);
+			heap[i].token = (char* ) malloc(strlen(heap[(i-1)/2].token) * sizeof(char));
+			heap[i].count = heap[(i-1)/2].count;
+			strcpy(heap[i].token, heap[(i-1)/2].token);
+			heap[(i-1)/2].token = (char* ) malloc(strlen(temp.token) * sizeof(char));
+			heap[(i-1)/2].count = temp.count;
+			strcpy(heap[(i-1)/2].token, temp.token);
+			i = (i-1)/2;
+		} else {
+			break;
+		}
+	}
+}
+void siftDown(struct Heap* heap, int length) { //child formula is 2i+1 and 2i+2
+	int i = 0;
+	int min;
+	struct Heap temp;
+	while (i < min) {
+		min = i;
+		if (2*i + 1 < length) {
+			min = 2*i + 1;
+			if (2*i + 2 < length) {
+				if (heap[2*i + 2].count < heap[min].count) {
+					min = 2*i + 2;
+				}
+			}
+		} else {
+			return;
+		}
+		if (heap[i].count > heap[min].count) {
+			struct Heap temp;
+			temp.token = (char* ) malloc(strlen(heap[i].token) * sizeof(char));
+			temp.count = heap[i].count;
+			strcpy(temp.token, heap[i].token);
+			heap[i].token = (char* ) malloc(strlen(heap[2*i + 1].token) * sizeof(char));
+			heap[i].count = heap[2*i + 1].count;
+			strcpy(heap[i].token, heap[2*i + 1].token);
+			heap[2*i + 1].token = (char* ) malloc(strlen(temp.token) * sizeof(char));
+			heap[2*i + 1].count = temp.count;
+			strcpy(heap[2*i + 1].token, temp.token);
+			i = min;
+		} else {
+			return;
+		}
+	}
+}
+struct Heap* makeMinHeap(struct tokenNode* list, int length) {
+	struct Heap* heap = (struct Heap* ) malloc(length * sizeof(struct Heap));
 	if (length == 0 || heap == NULL || list == NULL) return NULL;
-	heap[0].token = (char* ) malloc( strlen(list[0].token) * sizeof(char) );
+	heap[0].token = (char* ) malloc( strlen(list->token) * sizeof(char) );
 	strcpy(heap[0].token, list[0].token);
 	heap[0].count = list[0].count;
 	if (length == 1) return heap;
 	int place = 1;
-	heapNode* current = heap[1];
-	struct tokenNode* ptr = list[1];
+	struct Heap* current = &(heap[1]);
+	struct tokenNode* ptr = list->next;
 	while (ptr != NULL) {
-		heap[place].token = (char* ) malloc( strlen(list[place].token) * sizeof(char) );
-		strcpy(heap[place].token, list[place].token);
-		heap[place].count = list[place].count;
+		heap[place].token = (char* ) malloc( strlen(ptr->token) * sizeof(char) );
+		strcpy(heap[place].token, ptr->token);
+		heap[place].count = ptr->count;
 		siftUp(heap, place);
-		siftDown(heap, length);
 		place++;
+		ptr = ptr->next;
 	}
 	return heap;
 }
-void siftUp(heapNode* heap, int place) {
-
+struct Heap* popMin(struct Heap* heap, int* length) {
+	if (heap == NULL) return NULL;
+	struct Heap* popped = (struct Heap* ) malloc(sizeof(struct Heap));
+	popped->token = (char* ) malloc(strlen(heap[0].token) * sizeof(char));
+	popped->count = heap[0].count;
+	strcpy(popped->token, heap[0].token);
+	heap[0].token = (char* ) malloc(strlen(heap[*length - 1].token) * sizeof(char));
+	popped->count = heap[*length - 1].count;
+	strcpy(popped->token, heap[*length - 1].token);
+	*length = *length - 1;
+	siftDown(heap, *length);
+	return popped;
 }
-void siftDown(heapNode* heap, int length) {
-
+void printHeap(struct Heap* heap, int length) {
+	int i = 0;
+	if (heap == NULL) return;
+	while (i < length) {
+		printf("%d %s   ", heap[i].count, heap[i].token);
+		i++;
+	}
+	printf("\n");
 }
 int main(int argc, char **argv){
 	//going through directories recursively
@@ -475,5 +544,18 @@ int main(int argc, char **argv){
 	
 	//decompress a file given a codebook
 	//decompress(argv[1], argv[2]);
+	struct tokenNode five = {.token = "five", .count = 5, .next = NULL};
+	struct tokenNode four = {.token = "four", .count = 2, .next = &five};
+	struct tokenNode three = {.token = "three", .count = 3, .next = &four};
+	struct tokenNode two = {.token = "two", .count = 4, .next = &three};
+	struct tokenNode one = {.token = "one", .count = 1, .next = &two};
+	struct tokenNode* first = &one;
+	int* length = (int* ) malloc(sizeof(int));
+	*length = 5;
+	struct Heap* heap = makeMinHeap(first, *length);
+	printHeap(heap, *length);
+	printf("%s %d\n", popMin(heap, length)->token, popMin(heap, length)->count);
+	printHeap(heap, *length);
+	printf("length is %d\n", *length);
 	return EXIT_SUCCESS;
 }
