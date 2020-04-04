@@ -15,15 +15,19 @@ struct tokenNode{
 	int count;
 	struct tokenNode* next;
 };
-struct Heap {
+struct huff {
 	char* token;
 	int count;
+	struct huff* left;   
+	struct huff* right;
 };
-typedef struct binaryTreeNode {
-	char* data;
-	struct binaryTreeNode* left;   
-	struct binaryTreeNode* right;
-} treeNode;
+struct avl {
+	char* token;
+	char* code;
+	int height;
+	struct avl* left;
+	struct avl* right;
+};
 struct tokenNode* countOccurrences(struct tokenNode* head, char* newToken){
 	if(head->token==NULL){
 		head->token=malloc(strlen(newToken)+1);
@@ -339,7 +343,7 @@ void recursiveComDecom(char* command, char* directory, struct tokenNode* firstTo
     }
     closedir(dir);
 }
-int isLeaf(treeNode* root) {
+int isLeaf(struct huff* root) {
 	if (root == NULL) return 0;
 	if (root->left != NULL || root->right != NULL) return 0;
 	return 1;
@@ -353,30 +357,33 @@ int tokenNodeLength(struct tokenNode* front) {
 	}
 	return length;
 }
-void siftUp(struct Heap* heap, int place) { //parent formula is (i-1)/2
+void huffcpy(struct huff* dest, struct huff* src) {
+	dest->token = (char* ) malloc(strlen(src->token) * sizeof(char));
+	strcpy(dest->token, src->token);
+	dest->count = src->count;
+	dest->left = src->left;
+	dest->right = src->right;
+}
+void huffswap(struct huff* one, struct huff* two) {
+	struct huff temp;
+	huffcpy(&temp, one);
+	huffcpy(one, two);
+	huffcpy(two, &temp);
+}
+void siftUp(struct huff* heap, int place) { //parent formula is (i-1)/2
 	int i = place;
-	struct Heap temp;
 	while ((i-1)/2 >= 0) {
 		if (heap[i].count < heap[(i-1)/2].count) {
-			temp.token = (char* ) malloc(strlen(heap[i].token) * sizeof(char));
-			temp.count = heap[i].count;
-			strcpy(temp.token, heap[i].token);
-			heap[i].token = (char* ) malloc(strlen(heap[(i-1)/2].token) * sizeof(char));
-			heap[i].count = heap[(i-1)/2].count;
-			strcpy(heap[i].token, heap[(i-1)/2].token);
-			heap[(i-1)/2].token = (char* ) malloc(strlen(temp.token) * sizeof(char));
-			heap[(i-1)/2].count = temp.count;
-			strcpy(heap[(i-1)/2].token, temp.token);
+			huffswap(heap + i, heap + (i-1)/2);
 			i = (i-1)/2;
 		} else {
 			break;
 		}
 	}
 }
-void siftDown(struct Heap* heap, int length) { //child formula is 2i+1 and 2i+2
+void siftDown(struct huff* heap, int length) { //child formula is 2i+1 and 2i+2
 	int i = 0;
 	int min;
-	struct Heap temp;
 	while (i < min) {
 		min = i;
 		if (2*i + 1 < length) {
@@ -390,56 +397,47 @@ void siftDown(struct Heap* heap, int length) { //child formula is 2i+1 and 2i+2
 			return;
 		}
 		if (heap[i].count > heap[min].count) {
-			struct Heap temp;
-			temp.token = (char* ) malloc(strlen(heap[i].token) * sizeof(char));
-			temp.count = heap[i].count;
-			strcpy(temp.token, heap[i].token);
-			heap[i].token = (char* ) malloc(strlen(heap[2*i + 1].token) * sizeof(char));
-			heap[i].count = heap[2*i + 1].count;
-			strcpy(heap[i].token, heap[2*i + 1].token);
-			heap[2*i + 1].token = (char* ) malloc(strlen(temp.token) * sizeof(char));
-			heap[2*i + 1].count = temp.count;
-			strcpy(heap[2*i + 1].token, temp.token);
+			huffswap(heap + i, heap + min);
 			i = min;
 		} else {
 			return;
 		}
 	}
 }
-struct Heap* makeMinHeap(struct tokenNode* list, int length) {
-	struct Heap* heap = (struct Heap* ) malloc(length * sizeof(struct Heap));
+struct huff* makeMinHeap(struct tokenNode* list, int length) {
+	struct huff* heap = (struct huff* ) malloc(length * sizeof(struct huff));
 	if (length == 0 || heap == NULL || list == NULL) return NULL;
 	heap[0].token = (char* ) malloc( strlen(list->token) * sizeof(char) );
 	strcpy(heap[0].token, list[0].token);
 	heap[0].count = list[0].count;
+	heap[0].left = NULL;
+	heap[0].right = NULL;
 	if (length == 1) return heap;
 	int place = 1;
-	struct Heap* current = &(heap[1]);
+	struct huff* current = &(heap[1]);
 	struct tokenNode* ptr = list->next;
 	while (ptr != NULL) {
 		heap[place].token = (char* ) malloc( strlen(ptr->token) * sizeof(char) );
 		strcpy(heap[place].token, ptr->token);
 		heap[place].count = ptr->count;
+		heap[place].left = NULL;
+		heap[place].right = NULL;
 		siftUp(heap, place);
 		place++;
 		ptr = ptr->next;
 	}
 	return heap;
 }
-struct Heap* popMin(struct Heap* heap, int* length) {
+struct huff* popMin(struct huff* heap, int* length) {
 	if (heap == NULL) return NULL;
-	struct Heap* popped = (struct Heap* ) malloc(sizeof(struct Heap));
-	popped->token = (char* ) malloc(strlen(heap[0].token) * sizeof(char));
-	popped->count = heap[0].count;
-	strcpy(popped->token, heap[0].token);
-	heap[0].token = (char* ) malloc(strlen(heap[*length - 1].token) * sizeof(char));
-	popped->count = heap[*length - 1].count;
-	strcpy(popped->token, heap[*length - 1].token);
+	struct huff* popped = (struct huff* ) malloc(sizeof(struct huff));
+	huffcpy(popped, heap);
+	huffcpy(heap, heap + (*length)-1);
 	*length = *length - 1;
 	siftDown(heap, *length);
 	return popped;
 }
-void printHeap(struct Heap* heap, int length) {
+void printHeap(struct huff* heap, int length) {
 	int i = 0;
 	if (heap == NULL) return;
 	while (i < length) {
@@ -448,8 +446,48 @@ void printHeap(struct Heap* heap, int length) {
 	}
 	printf("\n");
 }
+void heapAppend(struct huff* heap, struct huff* newOne, int* length) {
+	if (heap->token == NULL) *heap = *newOne;
+	huffcpy(heap + *length, newOne);
+	siftUp(heap, *length);
+	*length = *length + 1;
+}
+void printHuff(struct huff* root) {
+	if (root == NULL) return;
+	printf(" ( ");
+	printHuff(root->left);
+	printf(" %s %d ", root->token, root->count);
+	printHuff(root->right);
+	printf(" ) ");
+}
+struct huff* combine(struct huff* first, struct huff* second) {
+	struct huff* newTree = (struct huff* ) malloc(sizeof(struct huff));
+	newTree->token = "";
+	newTree->count = first->count + second->count;
+	newTree->left = (struct huff* ) malloc(sizeof(struct huff));
+	newTree->right = (struct huff* ) malloc(sizeof(struct huff));
+	huffcpy(newTree->left, first);
+	huffcpy(newTree->right, second);
+	//printHuff(newTree);
+	return newTree;
+}
+struct huff* makeHuffmanTree(struct huff* heap, int* length) {
+	if (*length == 0 || heap == NULL) return NULL;
+	if (*length == 1) return heap;
+	struct huff* first = popMin(heap, length);
+	struct huff* second = popMin(heap, length);
+	struct huff* newest = combine(first, second);
+	heapAppend(heap, newest, length);
+	while (*length > 1) {
+		first = popMin(heap, length);
+		second = popMin(heap, length);
+		newest = combine(first, second);
+		heapAppend(heap, newest, length);
+	}
+	return heap;
+}
 int main(int argc, char **argv){
-	if(strcmp(argv[1], "-R")==0){
+	/*if(strcmp(argv[1], "-R")==0){
 		if(strcmp(argv[2], "-c")==0||strcmp(argv[2], "-d")==0){
 			int codebook=open(argv[4], O_RDONLY);
 			struct tokenNode* firstTokenNode=(struct tokenNode*)malloc(sizeof(struct tokenNode));
@@ -467,7 +505,7 @@ int main(int argc, char **argv){
 			 * 
 			 * 
 			 */
-		}
+	/*	}
 	}
 	else if(strcmp(argv[1], "-c")==0||strcmp(argv[1], "-d")==0){
 		int codebook=open(argv[3], O_RDONLY);
@@ -489,7 +527,7 @@ int main(int argc, char **argv){
 		 * 
 		 * 
 		 */
-	}
+	/*}
 	else{
 		/*
 		 * 
@@ -497,24 +535,36 @@ int main(int argc, char **argv){
 		 * 
 		 * 
 		 */
-	}
+/*	}
 
-	return EXIT_SUCCESS;
+	return EXIT_SUCCESS;*/
 	
-	/*
-	struct tokenNode five = {.token = "five", .count = 5, .next = NULL};
+	
+	struct tokenNode five = {.token = "five", .count = 1, .next = NULL};
 	struct tokenNode four = {.token = "four", .count = 2, .next = &five};
 	struct tokenNode three = {.token = "three", .count = 3, .next = &four};
 	struct tokenNode two = {.token = "two", .count = 4, .next = &three};
-	struct tokenNode one = {.token = "one", .count = 1, .next = &two};
-	struct tokenNode* first = &one;
-	int* length = (int* ) malloc(sizeof(int));
-	*length = 5;
-	struct Heap* heap = makeMinHeap(first, *length);
-	printHeap(heap, *length);
-	printf("%s %d\n", popMin(heap, length)->token, popMin(heap, length)->count);
-	printHeap(heap, *length);
-	printf("length is %d\n", *length);
-	* */
+	struct tokenNode one = {.token = "one", .count = 5, .next = &two};
+	int length = 5;
+	struct huff* heap = makeMinHeap(&one, length);
+	//printHeap(heap, length);
+	struct huff* hello = popMin(heap, &length);
+	//printf("%s %d\n", hello->token, hello->count);
+	//printHeap(heap, length);
+	//printf("length is %d\n", length);
+	
+	struct huff six = {.token = "six", .count = 2, .left = NULL, .right = NULL};
+	heapAppend(heap, &six, &length);
+	//printHeap(heap, length);
+	//printf("length is %d\n", length);
+	
+	struct huff* huffmanTree = makeHuffmanTree(heap, &length);
+	printHuff(huffmanTree);
+	printf("\n");
+	
+	return EXIT_SUCCESS;
 	
 }
+
+
+
