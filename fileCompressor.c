@@ -21,12 +21,11 @@ struct huff {
 	struct huff* left;   
 	struct huff* right;
 };
-struct avl {
+struct bst {
 	char* token;
 	char* code;
-	int height;
-	struct avl* left;
-	struct avl* right;
+	struct bst* left;
+	struct bst* right;
 };
 struct tokenNode* countOccurrences(struct tokenNode* head, char* newToken){
 	if(head->token==NULL){
@@ -486,6 +485,104 @@ struct huff* makeHuffmanTree(struct huff* heap, int* length) {
 	}
 	return heap;
 }
+int getHeight(struct bst* root) {
+	int max = 0;
+	if (root->left != NULL && root->right != NULL) {
+		max = getHeight(root->left);
+		if (max < getHeight(root->right)) {
+			max = getHeight(root->right);
+		}
+	} else if (root->left != NULL) {
+		max = getHeight(root->left);
+	} else if (root->right != NULL) {
+		max = getHeight(root->right);
+	}
+	return max;
+}
+void printBst(struct bst* tree) {
+	if (tree == NULL) return;
+	printf(" ( ");
+	if (tree->left != NULL) printBst(tree->left);
+	printf("%s %s", tree->token, tree->code);
+	if (tree->right != NULL) printBst(tree->right);
+	printf(" ) ");
+}
+void addBst(struct bst** tree, struct huff* huffPlace, char* code) {
+	printf("adding %s\n", code);
+	if ((*tree)->token == NULL) {
+		printf("first one\n");
+		(*tree) = (struct bst* ) malloc(sizeof(struct bst));
+		(*tree)->token = (char* ) malloc(strlen(huffPlace->token) * sizeof(char));
+		strcpy((*tree)->token, huffPlace->token);
+		(*tree)->code = (char* ) malloc(strlen(code) * sizeof(char));
+		strcpy((*tree)->code, code);
+		(*tree)->left = NULL;
+		(*tree)->right = NULL;
+		//printBst((*tree));
+		return;
+	}
+	struct bst* ptr = *tree;
+	while (ptr != NULL) {
+		if (strcmp(huffPlace->token, ptr->token) > 0) {
+			if (ptr->right == NULL) {
+				ptr->right = (struct bst* ) malloc(sizeof(struct bst));
+				ptr->right->token = (char* ) malloc(strlen(huffPlace->token) * sizeof(char));
+				strcpy(ptr->right->token, huffPlace->token);
+				ptr->right->code = (char* ) malloc(strlen(code) * sizeof(char));
+				strcpy(ptr->right->code, code);
+				ptr->right->left = NULL;
+				ptr->right->right = NULL;
+				return;
+			}
+			ptr = ptr->right;
+		} else {
+			if (ptr->left == NULL) {
+				ptr->left = (struct bst* ) malloc(sizeof(struct bst));
+				ptr->left->token = (char* ) malloc(strlen(huffPlace->token) * sizeof(char));
+				strcpy(ptr->left->token, huffPlace->token);
+				ptr->left->code = (char* ) malloc(strlen(code) * sizeof(char));
+				strcpy(ptr->left->code, code);
+				ptr->left->left = NULL;
+				ptr->left->right = NULL;
+				return;
+			}
+			ptr = ptr->left;
+		}
+	}
+}
+void findtokens(struct bst** tree, struct huff* huffPlace, char* code) {
+	//printf("finding %s\n", code);
+	if (isLeaf(huffPlace)) {
+		addBst(tree, huffPlace, code);
+	} else {
+		char* nextCode = malloc((strlen(code)+1) * sizeof(char));
+		if (huffPlace->left != NULL) {
+			strcpy(nextCode, code);
+			strcat(nextCode, "0");
+			findtokens(tree, huffPlace->left, nextCode);
+		}
+		if (huffPlace->right != NULL) {
+			strcpy(nextCode, code);
+			strcat(nextCode, "1");
+			findtokens(tree, huffPlace->right, nextCode);
+		}
+	}
+}
+struct bst* makeBst(struct huff* huffmanTree) {
+	struct bst* tree = (struct bst* ) malloc(sizeof(struct bst));
+	if (huffmanTree == NULL) return NULL;
+	if (isLeaf(huffmanTree)) {
+		tree->token = (char* ) malloc(strlen(huffmanTree->token) * sizeof(char));
+		strcpy(tree->token, huffmanTree->token);
+		tree->code = "0";
+		tree->left = NULL;
+		tree->right = NULL;
+	} else {
+		if (huffmanTree->left != NULL) findtokens(&tree, huffmanTree->left, "0");
+		if (huffmanTree->right != NULL) findtokens(&tree, huffmanTree->right, "1");
+	}
+	return tree;
+}
 int main(int argc, char **argv){
 	/*if(strcmp(argv[1], "-R")==0){
 		if(strcmp(argv[2], "-c")==0||strcmp(argv[2], "-d")==0){
@@ -547,19 +644,16 @@ int main(int argc, char **argv){
 	struct tokenNode one = {.token = "one", .count = 5, .next = &two};
 	int length = 5;
 	struct huff* heap = makeMinHeap(&one, length);
-	//printHeap(heap, length);
-	struct huff* hello = popMin(heap, &length);
-	//printf("%s %d\n", hello->token, hello->count);
-	//printHeap(heap, length);
-	//printf("length is %d\n", length);
 	
-	struct huff six = {.token = "six", .count = 2, .left = NULL, .right = NULL};
+	struct huff six = {.token = "six", .count = 10, .left = NULL, .right = NULL};
 	heapAppend(heap, &six, &length);
-	//printHeap(heap, length);
-	//printf("length is %d\n", length);
 	
 	struct huff* huffmanTree = makeHuffmanTree(heap, &length);
 	printHuff(huffmanTree);
+	printf("\n\n\n");
+	
+	struct bst* bintree = makeBst(huffmanTree);
+	printBst(bintree);
 	printf("\n");
 	
 	return EXIT_SUCCESS;
