@@ -540,7 +540,7 @@ void printBst(struct bst* tree) {
 	printf(" ) ");
 }
 void addBst(struct bst** tree, struct huff* huffPlace, char* code) {
-	//printf("adding %s\n", code);
+	printf("adding %s\n", code);
 	if ((*tree)->token == NULL) {
 		//printf("first one\n");
 		(*tree) = (struct bst* ) malloc(sizeof(struct bst));
@@ -551,6 +551,7 @@ void addBst(struct bst** tree, struct huff* huffPlace, char* code) {
 		(*tree)->left = NULL;
 		(*tree)->right = NULL;
 		//printBst((*tree));
+		printBst(*tree);
 		return;
 	}
 	struct bst* ptr = *tree;
@@ -602,6 +603,7 @@ void findtokens(struct bst** tree, struct huff* huffPlace, char* code) {
 }
 struct bst* makeBst(struct huff* huffmanTree) {
 	struct bst* tree = (struct bst* ) malloc(sizeof(struct bst));
+	tree->token = NULL;
 	if (huffmanTree == NULL) return NULL;
 	if (isLeaf(huffmanTree)) {
 		tree->token = (char* ) malloc(strlen(huffmanTree->token) * sizeof(char));
