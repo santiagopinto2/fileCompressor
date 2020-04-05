@@ -519,15 +519,13 @@ struct huff* makeHuffmanTree(struct huff* heap, int* length) {
 }
 int getHeight(struct bst* root) {
 	int max = 0;
-	if (root->left != NULL && root->right != NULL) {
-		max = getHeight(root->left);
-		if (max < getHeight(root->right)) {
-			max = getHeight(root->right);
-		}
-	} else if (root->left != NULL) {
-		max = getHeight(root->left);
-	} else if (root->right != NULL) {
-		max = getHeight(root->right);
+	if (root == NULL) return -1;
+	int leftHeight = getHeight(root->left);
+	int rightHeight = getHeight(root->right);
+	if (leftHeight >= rightHeight) {
+		max = leftHeight;
+	} else {
+		max = rightHeight;
 	}
 	return max;
 }
@@ -540,7 +538,7 @@ void printBst(struct bst* tree) {
 	printf(" ) ");
 }
 void addBst(struct bst** tree, struct huff* huffPlace, char* code) {
-	printf("adding %s\n", code);
+	//printf("adding %s\n", code);
 	if ((*tree)->token == NULL) {
 		//printf("first one\n");
 		(*tree) = (struct bst* ) malloc(sizeof(struct bst));
@@ -551,7 +549,7 @@ void addBst(struct bst** tree, struct huff* huffPlace, char* code) {
 		(*tree)->left = NULL;
 		(*tree)->right = NULL;
 		//printBst((*tree));
-		printBst(*tree);
+		//printBst(*tree);
 		return;
 	}
 	struct bst* ptr = *tree;
@@ -617,11 +615,67 @@ struct bst* makeBst(struct huff* huffmanTree) {
 	}
 	return tree;
 }
+int isBalanced(struct bst* root) {
+	if (root == NULL) return 1;
+	int dif = getHeight(root->right) - getHeight(root->left);
+	if (dif > 1 || dif < -1) return 0;
+	if (isBalanced(root->right) && isBalanced(root->left)) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+void addNodes(struct bst** balancedPlace, struct bst* array, int start, int end) {
+	if (start > end) return;
+	int mid = (start + end)/2;
+	//printf("%d %d %d\n", start, mid, end);
+	*balancedPlace = (struct bst* ) malloc(sizeof(struct bst));
+	**balancedPlace = array[mid];
+	(*balancedPlace)->left = NULL;
+	(*balancedPlace)->right = NULL;
+	addNodes(&((*balancedPlace)->left), array, start, mid-1);
+	addNodes(&((*balancedPlace)->right), array, mid+1, end);
+}
+void addToArray(struct bst* array, struct bst* root, int* place, int length) {
+	if (root == NULL) {
+		return;
+	}
+	
+	if (root->left != NULL) addToArray(array, root->left, place, length);
+	*(array + *place) = *root;
+	*place = *place + 1;
+	if (root->right != NULL) addToArray(array, root->right, place, length);
+}
+struct bst* makeBalancedTree(struct bst* root, int tokenCount) {
+	//CHECK IF BALANCED FIRST
+	//if (isBalanced(root)) return root;
+	if (root->right == NULL && root->left == NULL) {
+		return root;
+	}
+	struct bst* balancedTree = (struct bst* ) malloc(sizeof(struct bst));
+	balancedTree->token = NULL;
+	struct bst* array = (struct bst* ) malloc(sizeof(struct bst) * tokenCount);
+	int place = 0;
+	addToArray(array, root, &place, tokenCount);
+	addNodes(&balancedTree, array, 0, tokenCount-1);
+	return balancedTree;
+	/*int i = 0;
+	printf("printing sorted list\n");
+	for (i = 0; i < tokenCount; i++) {
+		printf("%s %s\n", array[i].token, array[i].code);
+	}*/
+}
 struct bst* buildBst(struct tokenNode* firstCountNode){
 	int firstCountNodeLen=tokenNodeLength(firstCountNode);
 	struct huff* heap=makeMinHeap(firstCountNode, firstCountNodeLen);
 	struct huff* huffTree=makeHuffmanTree(heap, &firstCountNodeLen);
-	return makeBst(huffTree);
+	struct bst* tree = makeBst(huffTree);
+	//printBst(tree);
+	//printf("Balanced: %d\n", isBalanced(tree));
+	struct bst* balancedTree = makeBalancedTree(tree, tokenNodeLength(firstCountNode));
+	//printBst(balancedTree);
+	//printf("Balanced: %d\n", isBalanced(balancedTree));
+	return balancedTree;
 }
 void writeHuffmanHelper2(int huffFile, struct bst* tree){
 	if(tree==NULL)
@@ -666,13 +720,13 @@ void writeHuffmanHelper(char* fileName, struct tokenNode* firstCountNode){
 	
 	
 	struct tokenNode* tmp=firstCountNode;
-	while(tmp!=NULL){
+	/*while(tmp!=NULL){
 		printf("%s\t%d\n", tmp->token, tmp->count);
 		tmp=tmp->next;
 	}
 	printf("\n");
 	printBst(bsTree);
-	printf("\n\n");
+	printf("\n\n");*/
 	
 	
 	
