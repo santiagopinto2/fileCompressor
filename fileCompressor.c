@@ -648,7 +648,7 @@ void addToArray(struct bst* array, struct bst* root, int* place, int length) {
 }
 struct bst* makeBalancedTree(struct bst* root, int tokenCount) {
 	//CHECK IF BALANCED FIRST
-	//if (isBalanced(root)) return root;
+	if (isBalanced(root)) return root;
 	if (root->right == NULL && root->left == NULL) {
 		return root;
 	}
