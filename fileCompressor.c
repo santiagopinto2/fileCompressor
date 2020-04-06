@@ -27,6 +27,7 @@ struct bst {
 	struct bst* left;
 	struct bst* right;
 };
+//When given a pointer to a linked list of readNodes, all are freed
 void freeReadNodeList(struct readNode* firstReadNode){
 	struct readNode* tmp;
 	while(firstReadNode!=NULL){
@@ -35,6 +36,7 @@ void freeReadNodeList(struct readNode* firstReadNode){
 		free(tmp);
 	}
 }
+//When given a pointer to a lnked list of tokenNodes, all nodes are freed
 void freeTokenNodeList(struct tokenNode* firstTokenNode){
 	struct tokenNode* tmp;
 	while(firstTokenNode!=NULL){
@@ -43,6 +45,7 @@ void freeTokenNodeList(struct tokenNode* firstTokenNode){
 		free(tmp);
 	}
 }
+//When given a pointer to a huffman tree node, it and its children are freed
 void freeHuffman(struct huff* firstHuff){
 	if(firstHuff!=NULL){
 		freeHuffman(firstHuff->left);
@@ -50,6 +53,7 @@ void freeHuffman(struct huff* firstHuff){
 		free(firstHuff);
 	}
 }
+//When given a pointer to a binary search tree node, it and its children are freed
 void freeBST(struct bst* firstBST){
 	if(firstBST!=NULL){
 		freeBST(firstBST->left);
