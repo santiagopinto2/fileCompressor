@@ -408,7 +408,7 @@ struct tokenNode* getOccurrences(char* fileName, struct tokenNode* firstCountNod
 	close(file);
 	return firstCountNode;
 }
-//shell to perform comrpess and decompress recursively
+//shell to perform compress and decompress recursively
 void recursiveComDecom(char* command, char* directory, struct tokenNode* firstTokenNode){
     struct dirent *dp;
     DIR *dir = opendir(directory);
@@ -436,11 +436,13 @@ void recursiveComDecom(char* command, char* directory, struct tokenNode* firstTo
     }
     closedir(dir);
 }
+//Returns 1 if the huffman tree is a leaf node and 0 if it is an internal node
 int isLeaf(struct huff* root) {
 	if (root == NULL) return 0;
 	if (root->left != NULL || root->right != NULL) return 0;
 	return 1;
 }
+//This takes a pointer to a tokenNode as input and returns the amount of nodes until null is reached, from the front of a linked list, it will return the length
 int tokenNodeLength(struct tokenNode* front) {
 	struct tokenNode* ptr = front;
 	int length = 0;
@@ -450,6 +452,7 @@ int tokenNodeLength(struct tokenNode* front) {
 	}
 	return length;
 }
+//This copies the data from a pointer to the src huffman tree to a pointer to the destination tree
 void huffcpy(struct huff* dest, struct huff* src) {
 	dest->token = (char* ) malloc(strlen(src->token) * sizeof(char));
 	strcpy(dest->token, src->token);
@@ -457,12 +460,14 @@ void huffcpy(struct huff* dest, struct huff* src) {
 	dest->left = src->left;
 	dest->right = src->right;
 }
+//Utilizes huffcpy to swap the values of two huffman trees between two pointers
 void huffswap(struct huff* one, struct huff* two) {
 	struct huff temp;
 	huffcpy(&temp, one);
 	huffcpy(one, two);
 	huffcpy(two, &temp);
 }
+//When given a pointer to a heap of huffman tree nodes and the location of the inserted node, sift up is performed, all necessary swaps are performed
 void siftUp(struct huff* heap, int place) { //parent formula is (i-1)/2
 	int i = place;
 	while ((i-1)/2 >= 0) {
@@ -474,6 +479,7 @@ void siftUp(struct huff* heap, int place) { //parent formula is (i-1)/2
 		}
 	}
 }
+//When given a pointer to a heap of huffman tree nodes and its length, sift down is performed with all of its necessary swaps
 void siftDown(struct huff* heap, int length) { //child formula is 2i+1 and 2i+2
 	int i = 0;
 	int min;
@@ -497,6 +503,7 @@ void siftDown(struct huff* heap, int length) { //child formula is 2i+1 and 2i+2
 		}
 	}
 }
+//When given a pointer to a linked list of tokens and its length, returns a pointer to the corresponding heap of huffman tree nodes
 struct huff* makeMinHeap(struct tokenNode* list, int length) {
 	struct huff* heap = (struct huff* ) malloc(length * sizeof(struct huff));
 	if (length == 0 || heap == NULL || list == NULL) return NULL;
@@ -521,6 +528,7 @@ struct huff* makeMinHeap(struct tokenNode* list, int length) {
 	}
 	return heap;
 }
+//When given a pointer to a heap of huffman tree nodes and a pointer to its length, popMin moves the last element to the front and performs siftDown, then decreases the reference of the length pointer and returns the original first element of the heap
 struct huff* popMin(struct huff* heap, int* length) {
 	if (heap == NULL) return NULL;
 	struct huff* popped = (struct huff* ) malloc(sizeof(struct huff));
@@ -530,6 +538,7 @@ struct huff* popMin(struct huff* heap, int* length) {
 	siftDown(heap, *length);
 	return popped;
 }
+//For testing purposes: When given a pointer to a heap (or regular array) of huffman tree nodes and its length, traverses the list of huffman tree nodes and prints each node's count and token separated by a space
 void printHeap(struct huff* heap, int length) {
 	int i = 0;
 	if (heap == NULL) return;
@@ -539,12 +548,14 @@ void printHeap(struct huff* heap, int length) {
 	}
 	printf("\n");
 }
+//When given a pointer to a heap of huffman tree nodes, a pointer to the to-be-added huffman tree node, and a pointer to the heap's length, adds an element to the end of the heap and performs a sift up, then increases the reference of the length pointer
 void heapAppend(struct huff* heap, struct huff* newOne, int* length) {
 	if (heap->token == NULL) *heap = *newOne;
 	huffcpy(heap + *length, newOne);
 	siftUp(heap, *length);
 	*length = *length + 1;
 }
+//For testing purposes: When given a pointer to a huffman tree node, traverses the tree and prints all of the nodes' tokens and counts with parenthesis showing the outer bounds of each subtree, does not print new line character at the end
 void printHuff(struct huff* root) {
 	if (root == NULL) return;
 	printf(" ( ");
@@ -553,6 +564,7 @@ void printHuff(struct huff* root) {
 	printHuff(root->right);
 	printf(" ) ");
 }
+//When given pointers to two huffman tree nodes, return a pointer to a new huffman tree node with "" as the token, and the count of the first and second, its left tree will be the first huffman tree, and its right will be the second huffman tree
 struct huff* combine(struct huff* first, struct huff* second) {
 	struct huff* newTree = (struct huff* ) malloc(sizeof(struct huff));
 	newTree->token = "";
@@ -563,6 +575,7 @@ struct huff* combine(struct huff* first, struct huff* second) {
 	huffcpy(newTree->right, second);
 	return newTree;
 }
+//When given a pointer to a heap of huffman tree nodes, and a pointer to its length, utilizes popMin and heapAppend to construct the corresponding huffman tree, returns a pointer to this huffman tree
 struct huff* makeHuffmanTree(struct huff* heap, int* length) {
 	if (*length == 0 || heap == NULL) return NULL;
 	if (*length == 1) return heap;
@@ -578,6 +591,7 @@ struct huff* makeHuffmanTree(struct huff* heap, int* length) {
 	}
 	return heap;
 }
+//When given a pointer to a binary search tree, returns the max height of its two child tree nodes plus one
 int getHeight(struct bst* root) {
 	int max = 0;
 	if (root == NULL) return -1;
@@ -588,8 +602,9 @@ int getHeight(struct bst* root) {
 	} else {
 		max = rightHeight;
 	}
-	return max;
+	return max + 1;
 }
+//When given a pointer to a binary search tree node, perform inorder traversal and print each node's token and huffman code, each node will be sorrounded by parenthesis
 void printBst(struct bst* tree) {
 	if (tree == NULL) return;
 	printf(" ( ");
@@ -598,6 +613,7 @@ void printBst(struct bst* tree) {
 	if (tree->right != NULL) printBst(tree->right);
 	printf(" ) ");
 }
+//When given a pointer to a pointer to a binary search tree, a pointer to the huffman tree node to-be-added, and the code of this new node, the new node is added to the binary search tree in the correct place based on the value of its token
 void addBst(struct bst** tree, struct huff* huffPlace, char* code) {
 	if ((*tree)->token == NULL) {
 		(*tree) = (struct bst* ) malloc(sizeof(struct bst));
@@ -638,6 +654,7 @@ void addBst(struct bst** tree, struct huff* huffPlace, char* code) {
 		}
 	}
 }
+//When given a pointer to a pointer to a binary search tree, a pointer to the current huffman tree node to be checked, and the current code, this function recursively traverses the huffman tree, building up the code for the nodes as it goes, and performs addBst on each leaf node of the huffman tree
 void findtokens(struct bst** tree, struct huff* huffPlace, char* code) {
 	//printf("finding %s\n", code);
 	if (isLeaf(huffPlace)) {
@@ -656,6 +673,7 @@ void findtokens(struct bst** tree, struct huff* huffPlace, char* code) {
 		}
 	}
 }
+//When given a pointer to a huffman tree, this generates the codes for each element, and returns a pointer to the corresponding binary search tree, node lookup is to be done with the value of the token
 struct bst* makeBst(struct huff* huffmanTree) {
 	struct bst* tree = (struct bst* ) malloc(sizeof(struct bst));
 	tree->token = NULL;
@@ -672,6 +690,7 @@ struct bst* makeBst(struct huff* huffmanTree) {
 	}
 	return tree;
 }
+//When given a pointer to the root of a binary search tree, returns 1 if the tree is balanced and 0 if the tree is not
 int isBalanced(struct bst* root) {
 	if (root == NULL) return 1;
 	int dif = getHeight(root->right) - getHeight(root->left);
@@ -682,6 +701,7 @@ int isBalanced(struct bst* root) {
 		return 0;
 	}
 }
+//When given a pointer to a pointer to a balanced binary search tree, a pointer to an array of binary search trees, and ints corresponding to the current start and end of the subarray, recursively adds midpoints of the array to the balanced binary search tree
 void addNodes(struct bst** balancedPlace, struct bst* array, int start, int end) {
 	if (start > end) return;
 	int mid = (start + end)/2;
@@ -693,6 +713,7 @@ void addNodes(struct bst** balancedPlace, struct bst* array, int start, int end)
 	addNodes(&((*balancedPlace)->left), array, start, mid-1);
 	addNodes(&((*balancedPlace)->right), array, mid+1, end);
 }
+//When given a pointer to an array of binary search tree nodes, a pointer to the root of the original binary search tree, a pointer to the current spot in the array, and the length of the final array, inorder traversal is performed on the bst to transform the pointer to the array into a pointer to a sorted array of binary search tree nodes
 void addToArray(struct bst* array, struct bst* root, int* place, int length) {
 	if (root == NULL) {
 		return;
@@ -703,6 +724,7 @@ void addToArray(struct bst* array, struct bst* root, int* place, int length) {
 	*place = *place + 1;
 	if (root->right != NULL) addToArray(array, root->right, place, length);
 }
+//When given a pointer to the root of a binary search tree with the total token count, this returns a pointer to the root of a balanced binary search tree corresponding to the input
 struct bst* makeBalancedTree(struct bst* root, int tokenCount) {
 	//CHECK IF BALANCED FIRST
 	if (isBalanced(root)) return root;
@@ -717,7 +739,7 @@ struct bst* makeBalancedTree(struct bst* root, int tokenCount) {
 	addNodes(&balancedTree, array, 0, tokenCount-1);
 	return balancedTree;
 }
-//creates an avl from a linked list of tokens to find their huffman code
+//creates an avl tree from a linked list of tokens to find their huffman code
 struct bst* buildBst(struct tokenNode* firstCountNode){
 	int firstCountNodeLen=tokenNodeLength(firstCountNode);
 	struct huff* heap=makeMinHeap(firstCountNode, firstCountNodeLen);
