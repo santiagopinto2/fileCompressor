@@ -1,0 +1,53 @@
+We had to test all three commands - compress, decompress, and build, by themselves and recursively.
+The primary codebook used to test compress and decompress was
+
+0	and
+100	cat
+101	button
+1100	a
+1101	dog
+111	ball
+999	 
+888	\n
+777	\t
+
+
+This is the example given in the assignment pdf with additions to take into account spaces, newlines, and tabs.
+The last three are distinct numbers to be able to easily differentiate them when testing.
+For compress (and later on build), the sample text file that we mostly used as a template was
+
+a dog  and
+cat button	 		ball
+
+  
+
+
+It had a combination of all the words in the codebook as well as various spaces, newlines, and tabs mixed 
+in together to see if multiple delimeters in a row functioned as intended.
+We compressed this file and many like it with the codebook and got the right results.
+We then used the .hcz file to then test for decompress since we knew what it is supposed to be exactly.
+
+110099911019999990888100999101777999777777111888888999999888888
+
+This was decompressed to confirm that it gave back the original text file.
+When testing both of these functions recursively, many files were added within the same folder,
+some the same some different, as well as we created nested folders that went multiple levels
+and each had multiple files to make sure that the recursion went through down all folders.
+
+To test build, the function was used with many files to ensure that every token was accounted for and every code was unique and could not be confused with any other code. Using the txt file from before, it displayed
+
+11	 
+01110	a
+001	\t
+101	\n
+100	ball
+0110	dog
+010	cat
+000	button
+01111	and
+
+
+This has all tokens and the codes are distinct and unique. Recursive was used again with many subfolders 
+and subfiles and we printed every token and their total count in standardout just to test to make sure the 
+numbers were going up and were the correct amount. Again, the codes were checked to make sure if they were 
+unique to each other in the final HuffmanCodebook file.

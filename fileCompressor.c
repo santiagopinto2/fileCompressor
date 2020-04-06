@@ -36,7 +36,7 @@ void freeReadNodeList(struct readNode* firstReadNode){
 		free(tmp);
 	}
 }
-//When given a pointer to a lnked list of tokenNodes, all nodes are freed
+//When given a pointer to a linked list of tokenNodes, all nodes are freed
 void freeTokenNodeList(struct tokenNode* firstTokenNode){
 	struct tokenNode* tmp;
 	while(firstTokenNode!=NULL){
@@ -821,8 +821,8 @@ void recursiveWriteHuffman(char* directory, struct tokenNode* firstCountNode){
 	writeHuffmanHelper(directory, firstCountNode);
 }
 int main(int argc, char **argv){
-	if (argc < 2) {
-		printf("There was an error in the input\n");
+	if (argc < 3) {
+		printf("Too few arguments in the input\n");
 		return EXIT_FAILURE;
 	}
 	if(strcmp(argv[1], "-R")==0){
