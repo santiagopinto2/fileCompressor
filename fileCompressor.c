@@ -27,7 +27,48 @@ struct bst {
 	struct bst* left;
 	struct bst* right;
 };
+void freeReadNodeList(struct readNode* firstReadNode){
+	struct readNode* tmp;
+	while(firstReadNode!=NULL){
+		tmp=firstReadNode;
+		firstReadNode=firstReadNode->next;
+		free(tmp);
+	}
+}
+void freeTokenNodeList(struct tokenNode* firstTokenNode){
+	struct tokenNode* tmp;
+	while(firstTokenNode!=NULL){
+		tmp=firstTokenNode;
+		firstTokenNode=firstTokenNode->next;
+		free(tmp);
+	}
+}
+void freeHuffman(struct huff* firstHuff){
+	if(firstHuff!=NULL){
+		freeHuffman(firstHuff->left);
+		freeHuffman(firstHuff->right);
+		free(firstHuff);
+	}
+}
+void freeBST(struct bst* firstBST){
+	if(firstBST!=NULL){
+		freeBST(firstBST->left);
+		freeBST(firstBST->right);
+		free(firstBST);
+	}
+}
+//gets length of an integer
+int getIntLen(int num){
+	int a=1;
+	while(num>9){
+		a++;
+		num/=10;
+	}
+	return a;
+}
+//adds new tokens to a linked list and counts how many times it occurs in a file
 struct tokenNode* countOccurrences(struct tokenNode* head, char* newToken){
+	//if list is empty
 	if(head->token==NULL){
 		int newTokenLen=strlen(newToken)+1;
 		head->token=malloc(newTokenLen);
@@ -38,6 +79,7 @@ struct tokenNode* countOccurrences(struct tokenNode* head, char* newToken){
 	}
 	int dup=0;
 	struct tokenNode* tmp=head;
+	//checks rest of list
 	while(tmp->next!=NULL){
 		if(strcmp(tmp->token, newToken)==0){
 				tmp->count++;
@@ -50,8 +92,10 @@ struct tokenNode* countOccurrences(struct tokenNode* head, char* newToken){
 		tmp->count++;
 		dup=1;
 	}
+	//if the token wasn't new, return
 	if(dup==1)
 		return head;
+	//if new node needs to be made
 	struct tokenNode* newTokenNode=(struct tokenNode*)malloc(sizeof(struct tokenNode));
 	newTokenNode->token=malloc(strlen(newToken)+1);
 	strcpy(newTokenNode->token, newToken);
@@ -60,6 +104,8 @@ struct tokenNode* countOccurrences(struct tokenNode* head, char* newToken){
 	tmp->next=newTokenNode;
 	return head;
 }
+//parses through a file and returns a string for each token in it
+//returns with the delimiter attached to the end of the token and is extracted later
 char* getToken(int file){
 	int flag, start=0, count=0;
 	char buffer;
@@ -107,6 +153,7 @@ char* getToken(int file){
 					tempReadNode=tempReadNode->next;
 				}
 				s[count]=tempReadNode->c;
+				freeReadNodeList(firstReadNode);
 				return s;
 				count=0;
 			}
@@ -123,32 +170,29 @@ char* getToken(int file){
 			}
 		}
 	}
+	freeReadNodeList(firstReadNode);
 	return NULL;
 }
-int getIntLen(int num){
-	int a=1;
-	while(num>9){
-		a++;
-		num/=10;
-	}
-	return a;
-}
+//parses through codebook and makes a linked list of every token and their code
 struct tokenNode* parseCodebook(struct tokenNode* firstTokenNode, int codebook){
 	int spaceCheck=0, start=0, counter=1, num, i;
 	char* string;
 	while((string=getToken(codebook))!=NULL){
+		//space char is unique since it confuses the parser
 		if(spaceCheck==0){
 			int stringLen=strlen(string);
 			char firstString[stringLen-1];
 			firstString[stringLen-2]='\0';
 			for(i=0;i<stringLen-2;i++)
 				firstString[i]=string[i];
+			//gets number first
 			if(start==0){
 				if(stringLen>2&&string[stringLen-1]=='t'){
 					start=1;
 					num=atoi(firstString);
 				}
 			}
+			//gets token and creates node
 			else{
 				if(counter==0){
 					counter=1;
@@ -156,11 +200,13 @@ struct tokenNode* parseCodebook(struct tokenNode* firstTokenNode, int codebook){
 				}
 				else if(counter==1){
 					counter=0;
+					//if list is empty
 					if(firstTokenNode->token==NULL){
 						firstTokenNode->token=malloc(strlen(firstString)+1);
 						strcpy(firstTokenNode->token, firstString);
 						firstTokenNode->count=num;
 					}
+					//if list is not empty
 					else{
 						struct tokenNode* tmp=firstTokenNode;
 						while(tmp->next!=NULL)
@@ -187,14 +233,17 @@ struct tokenNode* parseCodebook(struct tokenNode* firstTokenNode, int codebook){
 	}
 	return firstTokenNode;
 }
+//compress a file given a codebook in the form of a linked list
 void compress(char* fileName, struct tokenNode* firstTokenNode){
 	char* string;
 	int i;
 	int file=open(fileName, O_RDONLY);
 	int newFile=creat(strcat(fileName, ".hcz"), S_IRWXG|S_IRWXO|S_IRWXU);
+	//goes through every token
 	while((string=getToken(file))!=NULL){
 		int stringLen=strlen(string), writeInt, countLen;
 		struct tokenNode* tmp=firstTokenNode;
+		//if token is a space
 		if(stringLen==1){
 			while(tmp!=NULL){
 				if(strcmp(tmp->token, " ")==0){
@@ -206,6 +255,7 @@ void compress(char* fileName, struct tokenNode* firstTokenNode){
 				tmp=tmp->next;
 			}
 		}
+		//if token is \n or \t
 		else if(stringLen==2){
 			if(string[1]=='n'){
 				while(tmp!=NULL){
@@ -230,6 +280,7 @@ void compress(char* fileName, struct tokenNode* firstTokenNode){
 				}
 			}
 		}
+		//if token is anything else
 		else{
 			char firstString[stringLen-1], secondString[3];
 			firstString[stringLen-2]='\0';
@@ -260,6 +311,7 @@ void compress(char* fileName, struct tokenNode* firstTokenNode){
 	close(file);
 	close(newFile);
 }
+//decompress a file given a codebook in the form of a linked list
 void decompress(char* fileName, struct tokenNode* firstTokenNode){
 	int fileLen=strlen(fileName);
 	char newFileName[fileLen-3];
@@ -277,10 +329,12 @@ void decompress(char* fileName, struct tokenNode* firstTokenNode){
 		count++;
 		char code[count];
 		code[count-1]='\0';
+		//if it's a new number representing a token
 		if(firstReadNode->c==0){
 			firstReadNode->c=buffer;
 			code[0]=buffer;
 		}
+		//otherwise create a new node
 		else{
 			int count2=0;
 			struct readNode* tmpReadNode=firstReadNode;
@@ -296,9 +350,10 @@ void decompress(char* fileName, struct tokenNode* firstTokenNode){
 			newReadNode->next=NULL;
 			tmpReadNode->next=newReadNode;
 		}
-		int codeNum=atoi(code);		
+		int codeNum=atoi(code);
 		struct tokenNode* tmpTokenNode=firstTokenNode;
 		while(tmpTokenNode!=NULL){
+			//if it finds a match in the huffman code
 			if(tmpTokenNode->count==codeNum){
 				if(strcmp(tmpTokenNode->token, "\\n")==0)
 					writeInt=write(newFile, "\n", 1);
@@ -314,9 +369,11 @@ void decompress(char* fileName, struct tokenNode* firstTokenNode){
 			tmpTokenNode=tmpTokenNode->next;
 		}
 	}
+	freeReadNodeList(firstReadNode);
 	close(file);
 	close(newFile);
 }
+//shell to find the number of times a token occurs
 struct tokenNode* getOccurrences(char* fileName, struct tokenNode* firstCountNode){
 	int file=open(fileName, O_RDONLY);
 	int flag, i;
@@ -324,8 +381,11 @@ struct tokenNode* getOccurrences(char* fileName, struct tokenNode* firstCountNod
 	char* string;
 	while((string=getToken(file))!=NULL){
 		int stringLen=strlen(string);
-		if(stringLen==1||stringLen==2)
+		//if the token is just a space, \n, or \t
+		if(stringLen==1||stringLen==2){
 			firstCountNode=countOccurrences(firstCountNode, string);
+		}
+		//if the token is anything and then has a space, \n, or \t at the end
 		else{
 			char firstString[stringLen-1], secondString[3];
 			firstString[stringLen-2]='\0';
@@ -345,8 +405,10 @@ struct tokenNode* getOccurrences(char* fileName, struct tokenNode* firstCountNod
 				firstCountNode=countOccurrences(firstCountNode, "\\t");
 		}
 	}
+	close(file);
 	return firstCountNode;
 }
+//shell to perform comrpess and decompress recursively
 void recursiveComDecom(char* command, char* directory, struct tokenNode* firstTokenNode){
     struct dirent *dp;
     DIR *dir = opendir(directory);
@@ -499,7 +561,6 @@ struct huff* combine(struct huff* first, struct huff* second) {
 	newTree->right = (struct huff* ) malloc(sizeof(struct huff));
 	huffcpy(newTree->left, first);
 	huffcpy(newTree->right, second);
-	//printHuff(newTree);
 	return newTree;
 }
 struct huff* makeHuffmanTree(struct huff* heap, int* length) {
@@ -538,9 +599,7 @@ void printBst(struct bst* tree) {
 	printf(" ) ");
 }
 void addBst(struct bst** tree, struct huff* huffPlace, char* code) {
-	//printf("adding %s\n", code);
 	if ((*tree)->token == NULL) {
-		//printf("first one\n");
 		(*tree) = (struct bst* ) malloc(sizeof(struct bst));
 		(*tree)->token = (char* ) malloc(strlen(huffPlace->token) * sizeof(char));
 		strcpy((*tree)->token, huffPlace->token);
@@ -548,8 +607,6 @@ void addBst(struct bst** tree, struct huff* huffPlace, char* code) {
 		strcpy((*tree)->code, code);
 		(*tree)->left = NULL;
 		(*tree)->right = NULL;
-		//printBst((*tree));
-		//printBst(*tree);
 		return;
 	}
 	struct bst* ptr = *tree;
@@ -659,24 +716,18 @@ struct bst* makeBalancedTree(struct bst* root, int tokenCount) {
 	addToArray(array, root, &place, tokenCount);
 	addNodes(&balancedTree, array, 0, tokenCount-1);
 	return balancedTree;
-	/*int i = 0;
-	printf("printing sorted list\n");
-	for (i = 0; i < tokenCount; i++) {
-		printf("%s %s\n", array[i].token, array[i].code);
-	}*/
 }
+//creates an avl from a linked list of tokens to find their huffman code
 struct bst* buildBst(struct tokenNode* firstCountNode){
 	int firstCountNodeLen=tokenNodeLength(firstCountNode);
 	struct huff* heap=makeMinHeap(firstCountNode, firstCountNodeLen);
 	struct huff* huffTree=makeHuffmanTree(heap, &firstCountNodeLen);
 	struct bst* tree = makeBst(huffTree);
-	//printBst(tree);
-	//printf("Balanced: %d\n", isBalanced(tree));
 	struct bst* balancedTree = makeBalancedTree(tree, tokenNodeLength(firstCountNode));
-	//printBst(balancedTree);
-	//printf("Balanced: %d\n", isBalanced(balancedTree));
+	freeHuffman(heap);
 	return balancedTree;
 }
+//recusrively goes through a tree and writes it to a file
 void writeHuffmanHelper2(int huffFile, struct bst* tree){
 	if(tree==NULL)
 		return;
@@ -685,25 +736,15 @@ void writeHuffmanHelper2(int huffFile, struct bst* tree){
 	if(tree->right!=NULL)
 		writeHuffmanHelper2(huffFile, tree->right);
 	int treeTokenLen=strlen(tree->token), treeCodeLen=strlen(tree->code);
-	char string[treeTokenLen+treeCodeLen+6];
+	char string[treeTokenLen+treeCodeLen+3];
+	string[treeTokenLen+treeCodeLen+2]='\0';
 	strcpy(string, tree->code);
 	strcat(string, "\t");
 	strcat(string, tree->token);
 	strcat(string, "\n");
-	string[treeTokenLen+treeCodeLen+5]='\0';
-	
-	
-	
-	
-	
-	printf("%s", string);
-	
-	
-	
-	
-	
-	int writeInt=write(huffFile, string, strlen(string)+1);
+	int writeInt=write(huffFile, string, strlen(string));
 }
+//setups a file to write to and is the shell to recurse through a tree and write it
 void writeHuffmanHelper(char* fileName, struct tokenNode* firstCountNode){
 	struct bst* bsTree=buildBst(firstCountNode);
 	int fileNameLen=strlen(fileName), rchrFileNameLen=strlen(strrchr(fileName, '/'));
@@ -713,35 +754,17 @@ void writeHuffmanHelper(char* fileName, struct tokenNode* firstCountNode){
 	codebookPath[codebookPathLen-16]='\0';
 	strcat(codebookPath, "HuffmanCodebook");
 	int huffFile=creat(codebookPath, S_IRWXG|S_IRWXO|S_IRWXU);
-	
-	
-	
-	
-	
-	
-	struct tokenNode* tmp=firstCountNode;
-	/*while(tmp!=NULL){
-		printf("%s\t%d\n", tmp->token, tmp->count);
-		tmp=tmp->next;
-	}
-	printf("\n");
-	printBst(bsTree);
-	printf("\n\n");*/
-	
-	
-	
-	
-	
-	
-	
 	writeHuffmanHelper2(huffFile, bsTree);
-	int writeInt=write(huffFile, "\n", 2);
+	int writeInt=write(huffFile, "\n", 1);
+	freeBST(bsTree);
 	close(huffFile);	
 }
+//gets occurrences and sends it off
 void writeHuffman(struct tokenNode* firstCountNode, char* fileName){
 	firstCountNode=getOccurrences(fileName, firstCountNode);
 	writeHuffmanHelper(fileName, firstCountNode);
 }
+//gets occurrences from all files in a directory
 struct tokenNode* recursiveWriteHuffmanHelper(char* directory, struct tokenNode* firstCountNode){
 	struct dirent *dp;
     DIR *dir = opendir(directory);
@@ -766,6 +789,7 @@ struct tokenNode* recursiveWriteHuffmanHelper(char* directory, struct tokenNode*
     closedir(dir);
     return firstCountNode;
 }
+//gets occurrences and sends it off
 void recursiveWriteHuffman(char* directory, struct tokenNode* firstCountNode){
 	firstCountNode=recursiveWriteHuffmanHelper(directory, firstCountNode);
 	writeHuffmanHelper(directory, firstCountNode);
@@ -778,6 +802,7 @@ int main(int argc, char **argv){
 			firstTokenNode=parseCodebook(firstTokenNode, codebook);
 			recursiveComDecom(argv[2], argv[3], firstTokenNode);
 			close(codebook);
+			freeTokenNodeList(firstTokenNode);
 		}
 		else if(strcmp(argv[2], "-b")==0){
 			struct tokenNode* firstCountNode=(struct tokenNode*)malloc(sizeof(struct tokenNode));
@@ -785,6 +810,11 @@ int main(int argc, char **argv){
 			firstCountNode->count=0;
 			firstCountNode->next=NULL;
 			recursiveWriteHuffman(argv[3], firstCountNode); 
+			freeTokenNodeList(firstCountNode);
+		}
+		else{
+			printf("There was an error in the input\n");
+			return EXIT_FAILURE;
 		}
 	}
 	else if(strcmp(argv[1], "-c")==0||strcmp(argv[1], "-d")==0){
@@ -796,6 +826,7 @@ int main(int argc, char **argv){
 		else
 			decompress(argv[2], firstTokenNode);
 		close(codebook);
+		freeTokenNodeList(firstTokenNode);
 	}
 	else if(strcmp(argv[1], "-b")==0){
 		struct tokenNode* firstCountNode=(struct tokenNode*)malloc(sizeof(struct tokenNode));
@@ -803,42 +834,11 @@ int main(int argc, char **argv){
 		firstCountNode->count=0;
 		firstCountNode->next=NULL;
 		writeHuffman(firstCountNode, argv[2]);
+		freeTokenNodeList(firstCountNode);
 	}
-	
-	
 	else{
-		/*
-		 * 
-		 * input error
-		 * 
-		 * 
-		 */
-		 
+		printf("There was an error in the input\n");
+		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;
-	
-	
-	/*
-	struct tokenNode five = {.token = "five", .count = 1, .next = NULL};
-	struct tokenNode four = {.token = "four", .count = 2, .next = &five};
-	struct tokenNode three = {.token = "three", .count = 3, .next = &four};
-	struct tokenNode two = {.token = "two", .count = 4, .next = &three};
-	struct tokenNode one = {.token = "one", .count = 5, .next = &two};
-	int length = 5;
-	struct huff* heap = makeMinHeap(&one, length);
-	
-	struct huff six = {.token = "six", .count = 10, .left = NULL, .right = NULL};
-	heapAppend(heap, &six, &length);
-	
-	struct huff* huffmanTree = makeHuffmanTree(heap, &length);
-	printHuff(huffmanTree);
-	printf("\n\n\n");
-	
-	struct bst* bintree = makeBst(huffmanTree);
-	printBst(bintree);
-	printf("\n");
-	
-	return EXIT_SUCCESS;
-	* */
-	
 }
