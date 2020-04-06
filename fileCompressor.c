@@ -821,6 +821,10 @@ void recursiveWriteHuffman(char* directory, struct tokenNode* firstCountNode){
 	writeHuffmanHelper(directory, firstCountNode);
 }
 int main(int argc, char **argv){
+	if (argc < 2) {
+		printf("There was an error in the input\n");
+		return EXIT_FAILURE;
+	}
 	if(strcmp(argv[1], "-R")==0){
 		if(strcmp(argv[2], "-c")==0||strcmp(argv[2], "-d")==0){
 			int codebook=open(argv[4], O_RDONLY);
